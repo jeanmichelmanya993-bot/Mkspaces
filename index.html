@@ -161,7 +161,7 @@ async function loadClientDashboard(){
  if(!mkspaceUser||mkspaceProfile?.role!=='client')return;
  const [requests,favorites]=await Promise.all([
   mkspaceClient.from('interest_requests').select('id,status',{count:'exact'}).eq('client_id',mkspaceUser.id),
-  mkspaceClient.from('favorites').select('id',{count:'exact'}).eq('user_id',mkspaceUser.id)
+  mkspaceClient.from('favorites').select('user_id',{count:'exact',head:true}).eq('user_id',mkspaceUser.id)
  ]);
  const all=requests.data||[];
  const set=(id,value)=>{const e=document.getElementById(id);if(e)e.textContent=String(value)};
