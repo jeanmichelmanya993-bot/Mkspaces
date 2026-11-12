@@ -334,9 +334,21 @@ async function loadAdminListings(){
   const pending=x.status==='pending';
   const status=x.status==='verified'?'Publiée / vérifiée':x.status==='rejected'?'Refusée':x.status==='paused'?'En pause':x.status==='archived'?'Archivée':'En attente';
   const cls=x.status==='verified'?'green':x.status==='rejected'?'red':x.status==='pending'?'':'gray';
-  return '<div class="listitem"><div><h4>'+esc(x.title)+'</h4><p>'+esc(x.property_type)+' · '+(x.listing_type==='rent'?'À louer':'À vendre')+' · '+esc(x.commune?.name||'Commune non précisée')+' · '+(x.price!=null?Number(x.price).toLocaleString('fr-FR')+' '+esc(x.currency):'Prix non renseigné')+'</p><p>Soumise le '+new Date(x.created_at).toLocaleDateString('fr-FR')+'</p><p>Médias : '+(links.filter(Boolean).join(' · ')||'Aucun média joint')+' ('+media.filter(m=>m.media_type==='image').length+'/5 photos, '+media.filter(m=>m.media_type==='video').length+'/1 vidéo)</p></div><span class="pill '+cls+'">'+status+'</span>'+(pending?'<button class="btn gold small" onclick="adminReviewListing(\''+x.id+'\',\'verified\')">Valider</button><button class="btn danger small" onclick="adminReviewListing(\''+x.id+'\',\'rejected\')">Refuser</button>':'')+'</div>';
+  return '<div class="listitem"><div><h4>'+esc(x.title)+'</h4><p>'+esc(x.property_type)+' · '+(x.listing_type==='rent'?'À louer':'À vendre')+' · '+esc(x.commune?.name||'Commune non précisée')+' · '+(x.price!=null?Number(x.price).toLocaleString('fr-FR')+' '+esc(x.currency):'Prix non renseigné')+'</p><p>Soumise le '+new Date(x.created_at).toLocaleDateString('fr-FR')+'</p><p>Médias : '+(links.filter(Boolean).join(' · ')||'Aucun média joint')+' ('+media.filter(m=>m.media_type==='image').length+'/5 photos, '+media.filter(m=>m.media_type==='video').length+'/1 vidéo)</p></div><span class="pill '+cls+'">'+status+'</span>'+(mkspaceProfile.role==='admin'?'<button class="btn line small" onclick="adminEditListing(\''+x.id+'\')">Modifier</button>':'')+(pending?'<button class="btn gold small" onclick="adminReviewListing(\''+x.id+'\',\'verified\')">Valider</button><button class="btn danger small" onclick="adminReviewListing(\''+x.id+'\',\'rejected\')">Refuser</button>':'')+'</div>';
  }));
  el.innerHTML=cards.join('');
+}
+async function adminEditListing(id){
+ if(mkspaceProfile?.role!=='admin'){toast('Modification réservée à l’administrateur principal.');return}
+ const {data,error}=await mkspaceClient.from('property_listings').select('title,description,price,currency').eq('id',id).single();
+ if(error){toast('Annonce introuvable : '+error.message);return}
+ const title=prompt('Titre de l’annonce :',data.title||'');if(title===null)return;
+ const description=prompt('Description :',data.description||'');if(description===null)return;
+ const rawPrice=prompt('Prix demandé :',String(data.price??''));if(rawPrice===null)return;
+ const price=Number(rawPrice);if(!Number.isFinite(price)||price<0){toast('Prix invalide.');return}
+ const {error:saveError}=await mkspaceClient.from('property_listings').update({title:title.trim(),description:description.trim()||null,price}).eq('id',id);
+ if(saveError){toast('Modification impossible : '+saveError.message);return}
+ toast('Annonce modifiée et journalisée.');loadAdminListings();
 }
 async function adminReviewListing(id,decision){if(!confirm(decision==='verified'?'Confirmer la validation et la publication de cette annonce ?':'Confirmer le refus de cette annonce ?'))return;const {data,error}=await mkspaceClient.rpc('mkspace_review_property_listing',{p_listing_id:id,p_decision:decision});if(error){toast('La décision a échoué : '+error.message);return}toast(decision==='verified'?'Annonce validée et publiée.':'Annonce refusée.');await loadAdminListings()}
 async function loadAdminProfessionals(){
