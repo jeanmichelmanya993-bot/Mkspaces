@@ -269,10 +269,10 @@ async function loadAdminMessages(){
  el.innerHTML=data?.length?data.map(c=>'<div class="listitem"><div><h4>'+esc(c.interest_request?.property?.title||c.interest_request?.professional?.category||'Conversation MKSpace')+'</h4><p>'+new Date(c.created_at).toLocaleString('fr-FR')+' · '+(c.members||[]).length+' participant(s)</p><p>'+esc((c.members||[]).map(m=>m.member_role).join(' · '))+'</p></div><button class="btn line small" onclick="adminViewConversation(\''+c.id+'\')">Voir les messages</button></div>').join(''):'<div class="empty">Aucune conversation ouverte.</div>';
 }
 async function adminViewConversation(id){
- const {data,error}=await mkspaceClient.from('messages').select('sender_id,body,created_at').eq('conversation_id',id).order('created_at',{ascending:true});
- if(error){toast('Lecture impossible : '+error.message);return}
- const body=(data||[]).map(m=>new Date(m.created_at).toLocaleString('fr-FR')+' — '+(m.sender_id===mkspaceUser.id?'MKSpace (vous)':'Participant')+' : '+m.body).join(' | ')||'Aucun message.';
- openModal('Conversation MKSpace',body);
+ activeConversationId=id;
+ go('messages');
+ await loadGlobalConversations();
+ await loadGlobalConversation(id);
 }
 async function loadAdminModeration(){
  if(mkspaceProfile?.role!=='admin')return;
