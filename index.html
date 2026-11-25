@@ -119,7 +119,7 @@ async function submitProfessionalProfile(){
   const payload={category,description:document.getElementById('providerDescription').value.trim()||null,experience_label:document.getElementById('providerExperience').value,commune_id,service_area:document.getElementById('providerArea').value.trim()||null};
   if(current){
    if(current.status==='verified')throw new Error('Votre profil est déjà vérifié. Contactez MKSpace pour demander une modification.');
-   if(current.status==='rejected')payload.status='pending';
+   
    ({data:profile,error}=await mkspaceClient.from('professional_profiles').update(payload).eq('id',current.id).select('id').single());
   }else{
    ({data:profile,error}=await mkspaceClient.from('professional_profiles').insert({...payload,user_id:mkspaceUser.id}).select('id').single());
@@ -214,7 +214,7 @@ async function loadUserAppointments(){
 }
 async function updateUserAppointment(id,status){
  if(status==='completed'){toast('Seul l’administrateur MKSpace peut clôturer le rendez-vous.');return}
- const {error}=await mkspaceClient.from('appointments').update({status}).eq('id',id);
+ const {error}=await mkspaceClient.rpc('mkspace_update_appointment_status',{p_appointment_id:id,p_status:status});
  if(error){toast('Modification impossible : '+error.message);return}
  toast('Rendez-vous mis à jour.');loadUserAppointments();
 }
@@ -262,7 +262,7 @@ async function loadAdminAppointments(){
 }
 function formatDateTimeLocal(value){const d=new Date(value);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
 async function saveAdminAppointmentDetails(id){const date=document.getElementById('adminApptDate-'+id)?.value,location=document.getElementById('adminApptLocation-'+id)?.value.trim()||null;if(!date){toast('Choisissez une date et une heure.');return}const scheduled_at=new Date(date).toISOString();const {error}=await mkspaceClient.from('appointments').update({scheduled_at,location}).eq('id',id);if(error){toast('Modification impossible : '+error.message);return}toast('Date et lieu du rendez-vous enregistrés.');loadAdminAppointments()}
-async function updateAdminAppointment(id,status){const {error}=await mkspaceClient.from('appointments').update({status}).eq('id',id);if(error){toast('Mise à jour impossible : '+error.message);return}toast('Rendez-vous mis à jour.');loadAdminAppointments()}
+async function updateAdminAppointment(id,status){const {error}=await mkspaceClient.rpc('mkspace_update_appointment_status',{p_appointment_id:id,p_status:status});if(error){toast('Mise à jour impossible : '+error.message);return}toast('Rendez-vous mis à jour.');loadAdminAppointments()}
 async function loadAdminMessages(){
  if(mkspaceProfile?.role!=='admin')return;
  const el=document.getElementById('adminMessagesList');if(!el)return;
